@@ -110,7 +110,7 @@ with tab2:
     most_count = year_counts.max() if not year_counts.empty else 0
 
     st.markdown(f"""
-    **Insight:** The year with the highest number of titles added is **{most_year}**, with **{most_count} titles**.
+    **Insight:** The year with the highest number of titles added is **{int(most_year)}**, with **{most_count} titles**.
     """)
 
 # TAB 3 – Ratings
@@ -162,10 +162,16 @@ with tab5:
     st.pyplot(fig5)
 
     years = df_trend['year_added'].unique()
-    st.markdown(f"""
-    **Insight:** This trend shows how Netflix's content evolved from **{min(years)}** to **{max(years)}**,  
-    with consistent growth in {', '.join(df_trend['type'].unique())}.
-    """)
+    if len(years) > 0:
+        min_year = int(min(years))
+        max_year = int(max(years))
+        content_types = ', '.join(df_trend['type'].unique())
+        st.markdown(f"""
+        **Insight:** This trend shows how Netflix's content evolved from **{min_year}** to **{max_year}**,  
+        with consistent growth in {content_types}.
+        """)
+    else:
+        st.markdown("**Insight:** No data available for the selected range.")
 
 # FOOTER
 st.markdown("---")
