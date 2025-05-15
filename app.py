@@ -97,20 +97,25 @@ with tab1:
 # TAB 2 – Titles Over Time
 with tab2:
     st.subheader("📆 Titles Added to Netflix Over Time")
+
+    # Clean year_added as integer to prevent .0 display
+    df_filtered_clean = df_filtered[df_filtered['year_added'].notnull()].copy()
+    df_filtered_clean['year_added'] = df_filtered_clean['year_added'].astype(int)
+
     fig2, ax2 = plt.subplots(figsize=(8, 3.5))
-    sns.countplot(data=df_filtered[df_filtered['year_added'].notnull()], x='year_added', color='#4a90e2', ax=ax2)
+    sns.countplot(data=df_filtered_clean, x='year_added', color='#4a90e2', ax=ax2)
     ax2.set_title("Titles Added Each Year")
     ax2.set_xlabel("Year")
     ax2.set_ylabel("Number of Titles")
     plt.xticks(rotation=45)
     st.pyplot(fig2)
 
-    year_counts = df_filtered['year_added'].value_counts().sort_index()
+    year_counts = df_filtered_clean['year_added'].value_counts().sort_index()
     most_year = year_counts.idxmax() if not year_counts.empty else "N/A"
     most_count = year_counts.max() if not year_counts.empty else 0
 
     st.markdown(f"""
-    **Insight:** The year with the highest number of titles added is **{int(most_year)}**, with **{most_count} titles**.
+    **Insight:** The year with the highest number of titles added is **{most_year}**, with **{most_count} titles**.
     """)
 
 # TAB 3 – Ratings
