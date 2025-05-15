@@ -10,7 +10,7 @@ st.set_page_config(page_title="Netflix Visual Explorer", layout="wide", page_ico
 st.title("🎬 Netflix Visual Explorer")
 st.markdown("""
 Welcome to an interactive and beautifully designed data science project analyzing Netflix content.  
-Created by **Idan Badin** as part of the Data Science midterm at Reichman University (2025).
+Created by **Idan Badin** as part of the Data Science midterm project at Reichman University (2025).
 """)
 
 # ================== Load Data ==================
