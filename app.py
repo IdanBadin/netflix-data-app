@@ -169,4 +169,4 @@ with tab5:
 
 # FOOTER
 st.markdown("---")
-st.success("✨ Created by Idan Badin | Netflix Project | Data Science 2025 | Reichman University")
+st.success("✨ Created by Idan Badin | Netflix Data Project | Data Science Midterm Project 2025 | Reichman University")
