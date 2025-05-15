@@ -2,4 +2,3 @@ streamlit
 pandas
 seaborn
 matplotlib
-streamlit-aggrid
