@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from st_aggrid import AgGrid
-from st_aggrid.grid_options_builder import GridOptionsBuilder
 
 # ============ PAGE CONFIG ==============
 st.set_page_config(
@@ -25,9 +23,9 @@ def load_data():
 with st.spinner("🔄 Loading Netflix data..."):
     df = load_data()
 
-# ============ CUSTOM HEADER ============
+# ============ HEADER ============
 st.title("🎬 Netflix Visual Explorer")
-st.markdown("Explore trends, content types, ratings, durations, and raw Netflix data in this modern Streamlit dashboard.")
+st.markdown("Explore trends, content types, ratings, durations, and Netflix insights in this interactive Streamlit dashboard.")
 with st.expander("📄 About this App", expanded=True):
     st.markdown("""
     This app is part of a Data Science midterm project by **Idan Badin**, using **pandas**, **seaborn**, and **streamlit**.  
@@ -39,6 +37,7 @@ st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/7/75/Netflix_ic
 st.sidebar.title("⚙️ Filters")
 selected_types = st.sidebar.multiselect("Select Content Type", df['type'].dropna().unique(), default=df['type'].dropna().unique())
 year_range = st.sidebar.slider("Year Added", int(df['year_added'].min()), int(df['year_added'].max()), (2015, 2020))
+
 df_filtered = df[(df['type'].isin(selected_types)) & (df['year_added'].between(*year_range))]
 
 # ============ METRICS ============
@@ -50,16 +49,15 @@ col3.metric("📺 TV Shows", f"{(df_filtered['type'] == 'TV Show').sum()}")
 st.markdown("---")
 
 # ============ TABS ============
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📊 Type Distribution",
     "📆 Titles Over Time",
     "🔖 Rating Breakdown",
     "🎯 Duration by Country",
-    "📈 Trends Over Time",
-    "📋 Data Table"
+    "📈 Trends Over Time"
 ])
 
-# TAB 1
+# TAB 1 – Type Distribution
 with tab1:
     st.subheader("📊 Content Type Distribution")
     fig1, ax1 = plt.subplots(figsize=(6, 3.5))
@@ -67,7 +65,18 @@ with tab1:
     ax1.set_title("Distribution of Movies and TV Shows")
     st.pyplot(fig1)
 
-# TAB 2
+    total = df_filtered.shape[0]
+    movie_count = (df_filtered['type'] == 'Movie').sum()
+    show_count = (df_filtered['type'] == 'TV Show').sum()
+    percent_movies = round(100 * movie_count / total) if total > 0 else 0
+    percent_shows = round(100 * show_count / total) if total > 0 else 0
+
+    st.markdown(f"""
+    **Insight:** In the selected range ({year_range[0]}–{year_range[1]}), Netflix has **{total} titles**.  
+    **{percent_movies}%** are Movies (**{movie_count}**) and **{percent_shows}%** are TV Shows (**{show_count}**).
+    """)
+
+# TAB 2 – Titles Over Time
 with tab2:
     st.subheader("📆 Titles Added to Netflix Over Time")
     fig2, ax2 = plt.subplots(figsize=(8, 3.5))
@@ -78,7 +87,15 @@ with tab2:
     plt.xticks(rotation=45)
     st.pyplot(fig2)
 
-# TAB 3
+    year_counts = df_filtered['year_added'].value_counts().sort_index()
+    most_year = year_counts.idxmax() if not year_counts.empty else "N/A"
+    most_count = year_counts.max() if not year_counts.empty else 0
+
+    st.markdown(f"""
+    **Insight:** The year with the highest number of titles added is **{most_year}**, with **{most_count} titles**.
+    """)
+
+# TAB 3 – Ratings
 with tab3:
     st.subheader("🔖 Rating Distribution by Content Type")
     fig3, ax3 = plt.subplots(figsize=(8, 3.5))
@@ -89,7 +106,12 @@ with tab3:
     plt.xticks(rotation=45)
     st.pyplot(fig3)
 
-# TAB 4
+    top_rating = df_filtered['rating'].value_counts().idxmax() if not df_filtered.empty else "N/A"
+    st.markdown(f"""
+    **Insight:** The most common rating in this selection is **{top_rating}**.
+    """)
+
+# TAB 4 – Duration
 with tab4:
     st.subheader("🎯 Average Movie Duration by Country (Top 5)")
     df_movies = df_filtered[df_filtered['type'] == 'Movie'].copy()
@@ -101,10 +123,15 @@ with tab4:
     sns.pointplot(data=df_movies_top, x='country', y='duration_min', hue='country',
                   palette='Set1', capsize=.2, ax=ax4, legend=False)
     ax4.set_title("Movie Duration by Country")
-    ax4.set_ylabel("Average Duration (Minutes)")
+    ax4.set_ylabel("Avg. Duration (Minutes)")
     st.pyplot(fig4)
 
-# TAB 5
+    avg_duration = df_movies['duration_min'].mean()
+    st.markdown(f"""
+    **Insight:** The average movie duration in this selection is **{round(avg_duration)} minutes**.
+    """)
+
+# TAB 5 – Trends
 with tab5:
     st.subheader("📈 Movies vs TV Shows Over Time")
     df_trend = df_filtered.groupby(['year_added', 'type']).size().reset_index(name='count')
@@ -116,29 +143,11 @@ with tab5:
     ax5.set_ylabel("Number of Titles")
     st.pyplot(fig5)
 
-# TAB 6 – AGGRID TABLE
-with tab6:
-    st.subheader("📋 Explore the Raw Netflix Dataset")
-    st.markdown("Use this table to explore the raw Netflix dataset — sort, search, and select any rows you want to analyze.")
-
-    try:
-        gb = GridOptionsBuilder.from_dataframe(df_filtered)
-        gb.configure_pagination(paginationAutoPageSize=True)
-        gb.configure_side_bar()
-        gb.configure_selection("multiple", use_checkbox=True)
-        grid_options = gb.build()
-
-        AgGrid(
-            df_filtered,
-            gridOptions=grid_options,
-            height=350,
-            theme="alpine",
-            enable_enterprise_modules=False,
-            fit_columns_on_grid_load=True
-        )
-    except Exception as e:
-        st.error("⚠️ Unable to render interactive table. Please check your data or dependencies.")
-        st.exception(e)
+    years = df_trend['year_added'].unique()
+    st.markdown(f"""
+    **Insight:** This trend shows how Netflix's content evolved from **{min(years)}** to **{max(years)}**,  
+    with consistent growth in {', '.join(df_trend['type'].unique())}.
+    """)
 
 # FOOTER
 st.markdown("---")
