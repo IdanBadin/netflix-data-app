@@ -107,7 +107,7 @@ with tab2:
     ax2.set_title("Titles Added Each Year")
     ax2.set_xlabel("Year")
     ax2.set_ylabel("Number of Titles")
-    plt.xticks(rotation=45)
+    plt.xticks(rotation=0)
     st.pyplot(fig2)
 
     year_counts = df_filtered_clean['year_added'].value_counts().sort_index()
