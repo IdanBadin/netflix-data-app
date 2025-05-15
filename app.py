@@ -121,20 +121,24 @@ with tab6:
     st.subheader("📋 Explore the Raw Netflix Dataset")
     st.markdown("Use this table to explore the raw Netflix dataset — sort, search, and select any rows you want to analyze.")
 
-    gb = GridOptionsBuilder.from_dataframe(df_filtered)
-    gb.configure_pagination(paginationAutoPageSize=True)
-    gb.configure_side_bar()  # Enables filtering/sorting sidebar
-    gb.configure_selection("multiple", use_checkbox=True)
-    grid_options = gb.build()
+    try:
+        gb = GridOptionsBuilder.from_dataframe(df_filtered)
+        gb.configure_pagination(paginationAutoPageSize=True)
+        gb.configure_side_bar()
+        gb.configure_selection("multiple", use_checkbox=True)
+        grid_options = gb.build()
 
-    AgGrid(
-        df_filtered,
-        gridOptions=grid_options,
-        height=350,
-        theme="alpine",
-        enable_enterprise_modules=False,
-        fit_columns_on_grid_load=True
-    )
+        AgGrid(
+            df_filtered,
+            gridOptions=grid_options,
+            height=350,
+            theme="alpine",
+            enable_enterprise_modules=False,
+            fit_columns_on_grid_load=True
+        )
+    except Exception as e:
+        st.error("⚠️ Unable to render interactive table. Please check your data or dependencies.")
+        st.exception(e)
 
 # FOOTER
 st.markdown("---")
