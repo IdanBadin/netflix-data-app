@@ -25,19 +25,37 @@ with st.spinner("🔄 Loading Netflix data..."):
 
 # ============ HEADER ============
 st.title("🎬 Netflix Visual Explorer")
-st.markdown("Explore trends, content types, ratings, durations, and Netflix insights in this interactive Streamlit dashboard.")
+
+st.markdown("""
+Explore content trends, types, ratings, durations, and time-based insights from Netflix's public dataset in this fully interactive Streamlit dashboard.  
+Use the filters on the left to focus on specific years or content types, and observe how Netflix's strategy evolved over time.
+""")
+
 with st.expander("📄 About this App", expanded=True):
     st.markdown("""
-    This app is part of a Data Science midterm project by **Idan Badin**, using **pandas**, **seaborn**, and **streamlit**.  
-    It provides a visual and interactive analysis of Netflix content across multiple dimensions.
-    """)
+This app was developed by **Idan Badin** as part of the **Data Science midterm project (2025)** at **Reichman University**.  
+It is based on a cleaned Netflix dataset and built using core tools from the course including:
+
+- 📦 **Pandas** for data manipulation  
+- 🎨 **Seaborn + Matplotlib** for visual exploration  
+- 🖥️ **Streamlit** for dashboard design and interactivity  
+
+The app reflects several key investigation techniques taught in class:
+- Dataset structure inspection  
+- Variable distributions (shape)  
+- Relationships and comparisons between variables  
+- Time-based content trends  
+- Generating insights from visual patterns
+
+Each graph includes a **dynamic textual insight** that updates based on user-selected filters.  
+The project was designed with clarity, usability, and insight in mind — to bring data storytelling to life.
+""")
 
 # ============ SIDEBAR ============
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/7/75/Netflix_icon.svg", width=90)
 st.sidebar.title("⚙️ Filters")
 selected_types = st.sidebar.multiselect("Select Content Type", df['type'].dropna().unique(), default=df['type'].dropna().unique())
 year_range = st.sidebar.slider("Year Added", int(df['year_added'].min()), int(df['year_added'].max()), (2015, 2020))
-
 df_filtered = df[(df['type'].isin(selected_types)) & (df['year_added'].between(*year_range))]
 
 # ============ METRICS ============
