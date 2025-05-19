@@ -41,8 +41,6 @@ Explore:
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg", use_container_width=True)
 st.sidebar.markdown("## 🎛️ Filter Dataset")
 
-tab = st.sidebar.radio("📍 Choose Tab", ["Overview", "Titles Over Time", "Ratings", "Durations", "Trends"])
-
 types = st.sidebar.multiselect("Select Type", df['type'].dropna().unique(), default=df['type'].dropna().unique())
 year_range = st.sidebar.slider("Select Year Range", int(df['year_added'].min()), int(df['year_added'].max()), (2015, 2020))
 
@@ -77,18 +75,30 @@ def gpt_summary(df):
     except Exception as e:
         return "⚠️ GPT error or usage limit reached."
 
-# ============ MAIN DISPLAY ============
-st.markdown(f"### 🎯 Showing {df_filtered.shape[0]} titles (Years {year_range[0]} to {year_range[1]})")
+# ============ TABS ============
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "📊 Overview",
+    "📆 Titles Over Time",
+    "🏷️ Ratings",
+    "⏱️ Durations",
+    "📈 Trends"
+])
 
-if tab == "Overview":
+with tab1:
     st.subheader("📊 Content Type Overview")
+    st.markdown(f"Showing **{df_filtered.shape[0]} titles** from **{year_range[0]} to {year_range[1]}**")
     fig = px.histogram(df_filtered, x='type', color='type', title="Distribution of Movies vs TV Shows")
     st.plotly_chart(fig, use_container_width=True)
     if not df_filtered.empty:
         insight = f"Most content is of type {df_filtered['type'].mode()[0]}."
         st.success(insight)
 
-elif tab == "Titles Over Time":
+    if st.button("🤖 GPT Summary of This View", key="gpt1"):
+        st.markdown("#### 💬 GPT Summary")
+        summary = gpt_summary(df_filtered)
+        st.success(summary)
+
+with tab2:
     st.subheader("📆 Titles Added Each Year")
     df_year = df_filtered[df_filtered['year_added'].notnull()].copy()
     df_year['year_added'] = df_year['year_added'].astype(int)
@@ -98,7 +108,12 @@ elif tab == "Titles Over Time":
         most = int(df_year['year_added'].mode()[0])
         st.info(f"The peak year for new titles was {most}.")
 
-elif tab == "Ratings":
+    if st.button("🤖 GPT Summary of This View", key="gpt2"):
+        st.markdown("#### 💬 GPT Summary")
+        summary = gpt_summary(df_filtered)
+        st.success(summary)
+
+with tab3:
     st.subheader("🏷️ Content Ratings by Type")
     fig = px.histogram(df_filtered, x='rating', color='type', barmode='group')
     st.plotly_chart(fig, use_container_width=True)
@@ -106,7 +121,12 @@ elif tab == "Ratings":
         rating = df_filtered['rating'].value_counts().idxmax()
         st.warning(f"The most common rating is {rating}.")
 
-elif tab == "Durations":
+    if st.button("🤖 GPT Summary of This View", key="gpt3"):
+        st.markdown("#### 💬 GPT Summary")
+        summary = gpt_summary(df_filtered)
+        st.success(summary)
+
+with tab4:
     st.subheader("⏱️ Average Movie Duration by Country")
     df_movies = df_filtered[df_filtered['type'] == 'Movie'].copy()
     df_movies['duration_min'] = df_movies['duration'].str.extract(r'(\d+)').astype(float)
@@ -120,18 +140,22 @@ elif tab == "Durations":
     else:
         st.warning("No data available for movie durations.")
 
-elif tab == "Trends":
+    if st.button("🤖 GPT Summary of This View", key="gpt4"):
+        st.markdown("#### 💬 GPT Summary")
+        summary = gpt_summary(df_filtered)
+        st.success(summary)
+
+with tab5:
     st.subheader("📈 Content Growth Trends")
     df_trend = df_filtered.groupby(['year_added', 'type']).size().reset_index(name='count')
     fig = px.line(df_trend, x='year_added', y='count', color='type', markers=True)
     st.plotly_chart(fig, use_container_width=True)
     st.info(f"From {year_range[0]} to {year_range[1]}, Netflix saw consistent growth across content types.")
 
-# ============ GPT SUMMARY BUTTON ============
-if st.button("🤖 GPT Summary of This View"):
-    st.markdown("#### 💬 GPT Summary")
-    summary = gpt_summary(df_filtered)
-    st.success(summary)
+    if st.button("🤖 GPT Summary of This View", key="gpt5"):
+        st.markdown("#### 💬 GPT Summary")
+        summary = gpt_summary(df_filtered)
+        st.success(summary)
 
 # ============ FOOTER ============
 st.markdown("---")
