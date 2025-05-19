@@ -149,8 +149,6 @@ with tab4:
 
     df_movies['main_country'] = df_movies['country'].str.split(',').str[0].str.strip()
 
-    st.write("🔍 Filtered Movies Sample:", df_movies[['title', 'duration', 'duration_num', 'main_country']].head(10))
-
     if df_movies.empty:
         st.warning("⚠️ No movie data available for current filters.")
     else:
@@ -159,7 +157,7 @@ with tab4:
             .mean()
             .reset_index()
             .sort_values(by='duration_num', ascending=False)
-            .head(10)  # 👈 Top 10 countries only
+            .head(10)
         )
         fig = px.bar(df_avg, x='main_country', y='duration_num', color='main_country')
         st.plotly_chart(fig, use_container_width=True)
