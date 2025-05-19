@@ -43,7 +43,7 @@ def load_data():
     df = pd.read_csv(url)
     df['date_added'] = pd.to_datetime(df['date_added'], errors='coerce')
     df['year_added'] = df['date_added'].dt.year
-    df['duration_num'] = pd.to_numeric(df['duration'].str.extract(r'(\\d+)')[0], errors='coerce')
+    df['duration_num'] = pd.to_numeric(df['duration'].str.extract(r'(\d+)')[0], errors='coerce')  # FIXED
     return df
 
 df = load_data()
