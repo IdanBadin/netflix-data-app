@@ -73,7 +73,10 @@ def gpt_summary(df, tab):
     prompt += {
         "Overview": "Summarize the content types.",
         "Ratings": "Summarize the rating breakdown.",
-        "Durations": "Which countries have longer average movie durations?",
+        "Durations": (
+            "Based on filtered Netflix data, summarize the average movie durations by country. "
+            "Comment on which countries have the longest or shortest durations and any interesting trends."
+        ),
         "Trends": "Summarize content trends over time.",
         "Titles Over Time": "Summarize when titles were added."
     }.get(tab, "Give a general summary.")
