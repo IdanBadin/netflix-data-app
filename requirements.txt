@@ -1,4 +1,6 @@
 streamlit
+streamlit-lottie
 pandas
-seaborn
 matplotlib
+seaborn
+plotly
