@@ -6,7 +6,7 @@ import openai
 from fpdf import FPDF
 import base64
 
-st.set_page_config(page_title="Netflix AI Dashboard", page_icon="🎬", layout="wide")
+st.set_page_config(page_title="Netflix Data Dashboard", page_icon="🎬", layout="wide")
 
 # ============ Style ============
 st.markdown("""
@@ -51,7 +51,7 @@ df = load_data()
 # ============ Header ============
 st.markdown('<div class="animated-title">🎬 Netflix Visual Explorer - GPT Edition</div>', unsafe_allow_html=True)
 st.markdown("""
-Welcome to the **Netflix Visual Explorer** — an interactive and AI-powered dashboard built as part of the 📚 *Data Science Midterm Project* at **Reichman University**.
+Welcome to the **Netflix Data Dashboard** — an interactive and AI-powered dashboard built as part of the 📚 *Data Science Midterm Project* at **Reichman University**.
 
 This app combines data analysis and storytelling to explore how Netflix's catalog evolved over time, using real-world data.
 
@@ -208,4 +208,4 @@ with tab5:
 
 # ============ Footer ============
 st.markdown("---")
-st.success("✨ Built with ❤️ by Idan Badin | Netflix GPT Dashboard | Reichman University 2025")
+st.success("✨ Built with ❤️ by Idan Badin | Netflix Data Dashboard | Reichman University Data Science Course 2025")
