@@ -43,7 +43,7 @@ def load_data():
     df = pd.read_csv(url)
     df['date_added'] = pd.to_datetime(df['date_added'], errors='coerce')
     df['year_added'] = df['date_added'].dt.year
-    df['duration_num'] = pd.to_numeric(df['duration'].str.extract(r'(\d+)')[0], errors='coerce')  # FIXED
+    df['duration_num'] = pd.to_numeric(df['duration'].str.extract(r'(\d+)')[0], errors='coerce')
     return df
 
 df = load_data()
@@ -141,17 +141,25 @@ with tab3:
 with tab4:
     st.subheader("⏱️ Average Movie Duration by Country")
 
-    df_movies = df_filtered[(df_filtered['type'] == 'Movie') & df_filtered['duration_num'].notna() & df_filtered['country'].notna()]
-    st.write("🔍 Filtered Movies Sample:", df_movies[['title', 'duration', 'duration_num', 'country']].head(10))
+    df_movies = df_filtered[
+        (df_filtered['type'] == 'Movie') &
+        df_filtered['duration_num'].notna() &
+        df_filtered['country'].notna()
+    ].copy()
+
+    df_movies['main_country'] = df_movies['country'].str.split(',').str[0].str.strip()
+
+    st.write("🔍 Filtered Movies Sample:", df_movies[['title', 'duration', 'duration_num', 'main_country']].head(10))
 
     if df_movies.empty:
         st.warning("⚠️ No movie data available for current filters.")
     else:
-        df_avg = df_movies.groupby('country')['duration_num'].mean().reset_index().sort_values(by='duration_num', ascending=False)
-        fig = px.bar(df_avg, x='country', y='duration_num', color='country')
+        df_avg = df_movies.groupby('main_country')['duration_num'].mean().reset_index().sort_values(by='duration_num', ascending=False)
+        fig = px.bar(df_avg, x='main_country', y='duration_num', color='main_country')
         st.plotly_chart(fig, use_container_width=True)
+
         max_country = df_avg.iloc[0]
-        st.success(f"🏆 {max_country['country']} has the longest average: {round(max_country['duration_num'])} minutes")
+        st.success(f"🏆 {max_country['main_country']} has the longest average: {round(max_country['duration_num'])} minutes")
 
         if st.button("GPT Summary", key="gpt4"):
             s = gpt_summary(df_filtered, "Durations")
