@@ -50,7 +50,21 @@ df = load_data()
 
 # ============ Header ============
 st.markdown('<div class="animated-title">🎬 Netflix Visual Explorer - GPT Edition</div>', unsafe_allow_html=True)
-st.markdown("Welcome to the **Netflix Visual Explorer** — built for the 📚 *Data Science Midterm Project* at **Reichman University**.")
+st.markdown("""
+Welcome to the **Netflix Visual Explorer** — an interactive and AI-powered dashboard built as part of the 📚 *Data Science Midterm Project* at **Reichman University**.
+
+This app combines data analysis and storytelling to explore how Netflix's catalog evolved over time, using real-world data.
+
+You'll discover:
+
+📊 What types of content dominate Netflix's library  
+📆 When titles were added and how growth changed year to year  
+🏷️ Which ratings are most common  
+⏱️ Where movies tend to be the longest  
+📈 How streaming trends evolved globally  
+
+With the power of OpenAI’s GPT, each view includes intelligent summaries that update with your filters, helping you uncover deeper insights — effortlessly.
+""")
 
 # ============ Sidebar ============
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg", use_container_width=True)
@@ -107,9 +121,12 @@ with tab1:
     st.subheader("📊 Content Type Overview")
     fig = px.histogram(df_filtered, x='type', color='type')
     st.plotly_chart(fig, use_container_width=True)
+
     counts = df_filtered['type'].value_counts(normalize=True).round(2) * 100
     if not counts.empty:
-        st.success(f"Current Selection: {counts.to_dict()}")
+        lines = [f"🔸 **{k}**: {v:.1f}%" for k, v in counts.items()]
+        st.success("**Distribution of Selected Titles:**\n\n" + "\n".join(lines))
+
     if st.button("GPT Summary", key="gpt1"):
         s = gpt_summary(df_filtered, "Overview")
         st.success(s)
@@ -123,7 +140,7 @@ with tab2:
     st.plotly_chart(fig, use_container_width=True)
     if not df_yr.empty:
         peak = df_yr['year_added'].value_counts().idxmax()
-        st.success(f"Most titles added in **{peak}**.")
+        st.success(f"📌 Most titles were added in **{peak}**.")
     if st.button("GPT Summary", key="gpt2"):
         s = gpt_summary(df_filtered, "Titles Over Time")
         st.success(s)
@@ -135,7 +152,7 @@ with tab3:
     st.plotly_chart(fig, use_container_width=True)
     if not df_filtered.empty:
         top_rating = df_filtered['rating'].value_counts().idxmax()
-        st.success(f"Top rating: **{top_rating}**.")
+        st.success(f"🏷️ The most frequent rating is **{top_rating}**.")
     if st.button("GPT Summary", key="gpt3"):
         s = gpt_summary(df_filtered, "Ratings")
         st.success(s)
@@ -178,6 +195,12 @@ with tab5:
     df_trend = df_filtered.groupby(['year_added', 'type']).size().reset_index(name='count')
     fig = px.line(df_trend, x='year_added', y='count', color='type', markers=True)
     st.plotly_chart(fig, use_container_width=True)
+
+    if not df_trend.empty:
+        start = int(df_trend['year_added'].min())
+        end = int(df_trend['year_added'].max())
+        st.success(f"📈 This chart shows Netflix's content growth by type between **{start}** and **{end}**, highlighting how the platform evolved over time.")
+
     if st.button("GPT Summary", key="gpt5"):
         s = gpt_summary(df_filtered, "Trends")
         st.success(s)
