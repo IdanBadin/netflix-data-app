@@ -5,3 +5,4 @@ matplotlib
 seaborn
 plotly
 openai==0.28
+fpdf
