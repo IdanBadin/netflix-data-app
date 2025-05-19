@@ -50,7 +50,7 @@ df = load_data()
 
 # ============ Header ============
 st.markdown('<div class="animated-title">🎬 Netflix Visual Explorer - GPT Edition</div>', unsafe_allow_html=True)
-st.markdown("Welcome to the **Netflix Visual Explorer** — created for the 📚 *Data Science Midterm Project* at **Reichman University**.")
+st.markdown("Welcome to the **Netflix Visual Explorer** — built for the 📚 *Data Science Midterm Project* at **Reichman University**.")
 
 # ============ Sidebar ============
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg", use_container_width=True)
@@ -142,19 +142,15 @@ with tab4:
     st.subheader("⏱️ Average Movie Duration by Country")
 
     df_movies = df_filtered[(df_filtered['type'] == 'Movie') & df_filtered['duration_num'].notna() & df_filtered['country'].notna()]
+    st.write("🔍 Filtered Movies Sample:", df_movies[['title', 'duration', 'duration_num', 'country']].head(10))
 
     if df_movies.empty:
         st.warning("⚠️ No movie data available for current filters.")
     else:
-        country_counts = df_movies['country'].value_counts()
-        top_countries = country_counts.head(5).index if len(country_counts) >= 5 else country_counts.index
-        df_top = df_movies[df_movies['country'].isin(top_countries)]
-        df_avg = df_top.groupby('country')['duration_num'].mean().reset_index()
-
+        df_avg = df_movies.groupby('country')['duration_num'].mean().reset_index().sort_values(by='duration_num', ascending=False)
         fig = px.bar(df_avg, x='country', y='duration_num', color='country')
         st.plotly_chart(fig, use_container_width=True)
-
-        max_country = df_avg.loc[df_avg['duration_num'].idxmax()]
+        max_country = df_avg.iloc[0]
         st.success(f"🏆 {max_country['country']} has the longest average: {round(max_country['duration_num'])} minutes")
 
         if st.button("GPT Summary", key="gpt4"):
