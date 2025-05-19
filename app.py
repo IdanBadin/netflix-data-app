@@ -67,8 +67,11 @@ with col1:
     Explore how content evolved over time, broken down by type, rating, country and duration.
     """)
 with col2:
-    lottie_animation = load_lottiefile("lottie_movie.json")
-    st_lottie(lottie_animation, height=120, key="movie")
+    try:
+        lottie_animation = load_lottiefile("lottie_movie.json")
+        st_lottie(lottie_animation, height=120, key="movie")
+    except:
+        pass
 
 # ============ SIDEBAR ==============
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg", use_column_width=True)
@@ -88,18 +91,44 @@ col2.markdown(f"""<div class='metric-box'>🎬 <br><strong>Movies</strong><br>{(
 col3.markdown(f"""<div class='metric-box'>📺 <br><strong>TV Shows</strong><br>{(df_filtered['type'] == 'TV Show').sum()}</div>""", unsafe_allow_html=True)
 
 # ============ TABS ==============
-tab1, tab2, tab3 = st.tabs(["📈 Trends", "🏷️ Ratings", "🌍 Duration by Country"])
+tabs = st.tabs([
+    "📊 Type Distribution", 
+    "📆 Titles Over Time",
+    "🏷️ Ratings", 
+    "🌍 Duration by Country",
+    "📈 Trends Over Time"
+])
 
-with tab1:
-    st.subheader("📈 Titles Added Over Time")
-    df_trend = df_filtered.groupby(['year_added', 'type']).size().reset_index(name='count')
-    fig = px.line(df_trend, x='year_added', y='count', color='type', markers=True,
-                  title="Titles Added Per Year by Type",
-                  color_discrete_sequence=px.colors.qualitative.Set1)
+with tabs[0]:
+    st.subheader("📊 Content Type Distribution")
+    fig = px.histogram(df_filtered, x='type', color='type', title="Distribution of Movies vs TV Shows",
+                       color_discrete_sequence=px.colors.qualitative.Set2)
     fig.update_layout(template='plotly_dark')
     st.plotly_chart(fig, use_container_width=True)
 
-with tab2:
+    movie_count = (df_filtered['type'] == 'Movie').sum()
+    show_count = (df_filtered['type'] == 'TV Show').sum()
+    st.markdown(f"""
+    **Insight:** In this selection, there are **{movie_count} Movies** and **{show_count} TV Shows**.
+    """)
+
+with tabs[1]:
+    st.subheader("📆 Titles Added Over Time")
+    df_filtered_clean = df_filtered[df_filtered['year_added'].notnull()].copy()
+    df_filtered_clean['year_added'] = df_filtered_clean['year_added'].astype(int)
+    fig = px.histogram(df_filtered_clean, x='year_added', color_discrete_sequence=['#4a90e2'])
+    fig.update_layout(template='plotly_dark', title="Titles Added Each Year")
+    st.plotly_chart(fig, use_container_width=True)
+
+    year_counts = df_filtered_clean['year_added'].value_counts().sort_index()
+    if not year_counts.empty:
+        most_year = int(year_counts.idxmax())
+        most_count = int(year_counts.max())
+        st.markdown(f"""
+        **Insight:** The year with the most content added is **{most_year}**, with **{most_count} titles**.
+        """)
+
+with tabs[2]:
     st.subheader("🏷️ Content Ratings")
     fig = px.histogram(df_filtered, x='rating', color='type', barmode='group',
                        title="Distribution of Ratings",
@@ -107,7 +136,13 @@ with tab2:
     fig.update_layout(template='plotly_dark')
     st.plotly_chart(fig, use_container_width=True)
 
-with tab3:
+    if not df_filtered.empty:
+        top_rating = df_filtered['rating'].value_counts().idxmax()
+        st.markdown(f"""
+        **Insight:** The most common rating in this selection is **{top_rating}**.
+        """)
+
+with tabs[3]:
     st.subheader("🌍 Average Duration by Country (Top 5)")
     df_movies = df_filtered[df_filtered['type'] == 'Movie'].copy()
     df_movies['duration_min'] = df_movies['duration'].str.extract(r'(\d+)').astype(float)
@@ -119,6 +154,30 @@ with tab3:
                  color_discrete_sequence=px.colors.sequential.Reds)
     fig.update_layout(template='plotly_dark')
     st.plotly_chart(fig, use_container_width=True)
+
+    avg_all = df_top['duration_min'].mean()
+    st.markdown(f"""
+    **Insight:** The average movie duration in top countries is **{round(avg_all)} minutes**.
+    """)
+
+with tabs[4]:
+    st.subheader("📈 Movies vs TV Shows Over Time")
+    df_trend = df_filtered.groupby(['year_added', 'type']).size().reset_index(name='count')
+    fig = px.line(df_trend, x='year_added', y='count', color='type', markers=True,
+                  title="Content Growth Over Time",
+                  color_discrete_sequence=px.colors.qualitative.Set1)
+    fig.update_layout(template='plotly_dark')
+    st.plotly_chart(fig, use_container_width=True)
+
+    if not df_trend.empty:
+        years = df_trend['year_added'].dropna().astype(int)
+        min_year = int(years.min())
+        max_year = int(years.max())
+        types = ', '.join(df_trend['type'].unique())
+        st.markdown(f"""
+        **Insight:** This trend shows how Netflix's content evolved from **{min_year}** to **{max_year}**,  
+        with consistent growth in {types}.
+        """)
 
 # ============ FOOTER ==============
 st.markdown("---")
