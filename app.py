@@ -154,7 +154,13 @@ with tab4:
     if df_movies.empty:
         st.warning("⚠️ No movie data available for current filters.")
     else:
-        df_avg = df_movies.groupby('main_country')['duration_num'].mean().reset_index().sort_values(by='duration_num', ascending=False)
+        df_avg = (
+            df_movies.groupby('main_country')['duration_num']
+            .mean()
+            .reset_index()
+            .sort_values(by='duration_num', ascending=False)
+            .head(10)  # 👈 Top 10 countries only
+        )
         fig = px.bar(df_avg, x='main_country', y='duration_num', color='main_country')
         st.plotly_chart(fig, use_container_width=True)
 
