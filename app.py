@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import random
 import openai
+import base64
 
 # ============ PAGE CONFIG ============
 st.set_page_config(page_title="Netflix AI Dashboard", page_icon="🎬", layout="wide")
@@ -43,6 +44,8 @@ With the power of **OpenAI’s GPT**, each view includes intelligent summaries t
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg", use_container_width=True)
 st.sidebar.markdown("## 🎛️ Filter Dataset")
 
+tab = st.sidebar.radio("📍 Choose Tab", ["Overview", "Titles Over Time", "Ratings", "Durations", "Trends"])
+
 types = st.sidebar.multiselect("Select Type", df['type'].dropna().unique(), default=df['type'].dropna().unique())
 year_range = st.sidebar.slider("Select Year Range", int(df['year_added'].min()), int(df['year_added'].max()), (2015, 2020))
 
@@ -50,7 +53,7 @@ df_filtered = df[(df['type'].isin(types)) & (df['year_added'].between(*year_rang
 
 # ============ DOWNLOAD ============
 csv = df_filtered.to_csv(index=False).encode()
-st.sidebar.download_button("📥 Download Filtered CSV", csv, "netflix_filtered.csv", "text/csv")
+st.sidebar.download_button("📥 Download CSV", csv, "netflix_filtered.csv", "text/csv")
 
 # ============ FUN FACT ============
 fact = random.choice([
@@ -68,117 +71,88 @@ def gpt_summary(df, tab_name):
     if openai.api_key is None:
         return "🔒 GPT key not set in Streamlit secrets."
 
-    base_prompt = f"You are analyzing a Netflix dataset with {df.shape[0]} rows.\n"
-    year_info = f"The selected year range is from {year_range[0]} to {year_range[1]}.\n"
-    type_info = f"The selected content types are: {', '.join(types)}.\n"
-
+    prompt = f"Netflix data from {year_range[0]} to {year_range[1]}, filtered for: {', '.join(types)}. "
     if tab_name == "Overview":
-        specific = "Summarize what this says about the balance of Movies and TV Shows."
+        prompt += "Summarize the distribution of content types."
     elif tab_name == "Titles Over Time":
-        specific = "What patterns are visible in title additions over time?"
+        prompt += "Describe how the number of titles added each year has changed."
     elif tab_name == "Ratings":
-        specific = "Which ratings are most common and what does it imply about content targeting?"
+        prompt += "What can be inferred from the distribution of ratings by content type?"
     elif tab_name == "Durations":
-        specific = "Which countries appear to have longer average movie durations?"
+        prompt += "Which countries have longer average movie durations?"
     elif tab_name == "Trends":
-        specific = "Describe growth trends across content types by year."
-
-    full_prompt = base_prompt + year_info + type_info + specific
+        prompt += "Describe growth trends in Netflix content over time."
 
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": full_prompt}]
+            messages=[{"role": "user", "content": prompt}]
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
         return f"⚠️ GPT error: {str(e)}"
 
-# ============ TABS ============
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📊 Overview",
-    "📆 Titles Over Time",
-    "🏷️ Ratings",
-    "⏱️ Durations",
-    "📈 Trends"
-])
+# ============ MAIN DISPLAY ============
+st.markdown(f"### 🎯 Showing {df_filtered.shape[0]} titles (Years {year_range[0]} to {year_range[1]})")
 
-with tab1:
+if tab == "Overview":
     st.subheader("📊 Content Type Overview")
-    st.markdown(f"**{df_filtered.shape[0]} titles** from **{year_range[0]} to {year_range[1]}** | Types: {', '.join(types)}")
     fig = px.histogram(df_filtered, x='type', color='type')
     st.plotly_chart(fig, use_container_width=True)
-
     if not df_filtered.empty:
-        count_info = df_filtered['type'].value_counts().to_dict()
-        explanation = f"Movies: {count_info.get('Movie', 0)}, TV Shows: {count_info.get('TV Show', 0)}"
-        st.success(f"📊 Breakdown → {explanation}")
+        breakdown = df_filtered['type'].value_counts().to_dict()
+        st.success(f"🟦 Movies: {breakdown.get('Movie',0)} | 🟥 TV Shows: {breakdown.get('TV Show',0)}")
+    if st.button("🤖 GPT Summary", key="gpt1"):
+        st.success(gpt_summary(df_filtered, tab))
 
-    if st.button("🤖 GPT Summary of This View", key="gpt1"):
-        st.markdown("#### 💬 GPT Summary")
-        summary = gpt_summary(df_filtered, "Overview")
-        st.success(summary)
-
-with tab2:
+elif tab == "Titles Over Time":
     st.subheader("📆 Titles Added Over Time")
     df_year = df_filtered[df_filtered['year_added'].notnull()].copy()
     df_year['year_added'] = df_year['year_added'].astype(int)
     fig = px.histogram(df_year, x='year_added', color_discrete_sequence=["#4a90e2"])
     st.plotly_chart(fig, use_container_width=True)
-
     if not df_year.empty:
-        most = int(df_year['year_added'].mode()[0])
-        st.info(f"🎯 Most titles were added in {most}")
+        peak_year = df_year['year_added'].value_counts().idxmax()
+        st.info(f"📅 Peak Year: {peak_year}")
+    if st.button("🤖 GPT Summary", key="gpt2"):
+        st.success(gpt_summary(df_filtered, tab))
 
-    if st.button("🤖 GPT Summary of This View", key="gpt2"):
-        st.markdown("#### 💬 GPT Summary")
-        summary = gpt_summary(df_filtered, "Titles Over Time")
-        st.success(summary)
-
-with tab3:
-    st.subheader("🏷️ Ratings by Content Type")
+elif tab == "Ratings":
+    st.subheader("🏷️ Ratings Distribution by Type")
     fig = px.histogram(df_filtered, x='rating', color='type', barmode='group')
     st.plotly_chart(fig, use_container_width=True)
-
     if not df_filtered.empty:
         rating = df_filtered['rating'].value_counts().idxmax()
         st.warning(f"🏷️ Most common rating: {rating}")
+    if st.button("🤖 GPT Summary", key="gpt3"):
+        st.success(gpt_summary(df_filtered, tab))
 
-    if st.button("🤖 GPT Summary of This View", key="gpt3"):
-        st.markdown("#### 💬 GPT Summary")
-        summary = gpt_summary(df_filtered, "Ratings")
-        st.success(summary)
-
-with tab4:
+elif tab == "Durations":
     st.subheader("⏱️ Average Movie Duration by Country")
     df_movies = df_filtered[df_filtered['type'] == 'Movie'].copy()
     df_movies['duration_min'] = df_movies['duration'].str.extract(r'(\\d+)').astype(float)
     top = df_movies['country'].value_counts().head(5).index
     df_avg = df_movies[df_movies['country'].isin(top)].groupby('country', as_index=False)['duration_min'].mean()
-
-    if not df_avg.empty:
+    if not df_avg.empty and not df_avg['duration_min'].isna().all():
         fig = px.bar(df_avg, x='country', y='duration_min', color='country')
         st.plotly_chart(fig, use_container_width=True)
-        top_country = df_avg.loc[df_avg['duration_min'].idxmax()]
-        st.success(f"⏱️ Longest average: {top_country['country']} – {round(top_country['duration_min'])} min")
+        try:
+            top_country = df_avg.loc[df_avg['duration_min'].idxmax()]
+            st.success(f"🏆 Longest: {top_country['country']} – {round(top_country['duration_min'])} minutes")
+        except Exception:
+            st.warning("⚠️ Could not determine top country.")
     else:
-        st.warning("No data available for movie durations.")
+        st.warning("No duration data available.")
+    if st.button("🤖 GPT Summary", key="gpt4"):
+        st.success(gpt_summary(df_filtered, tab))
 
-    if st.button("🤖 GPT Summary of This View", key="gpt4"):
-        st.markdown("#### 💬 GPT Summary")
-        summary = gpt_summary(df_filtered, "Durations")
-        st.success(summary)
-
-with tab5:
-    st.subheader("📈 Content Growth Over Time")
+elif tab == "Trends":
+    st.subheader("📈 Content Growth Trends")
     df_trend = df_filtered.groupby(['year_added', 'type']).size().reset_index(name='count')
     fig = px.line(df_trend, x='year_added', y='count', color='type', markers=True)
     st.plotly_chart(fig, use_container_width=True)
-
-    if st.button("🤖 GPT Summary of This View", key="gpt5"):
-        st.markdown("#### 💬 GPT Summary")
-        summary = gpt_summary(df_filtered, "Trends")
-        st.success(summary)
+    if st.button("🤖 GPT Summary", key="gpt5"):
+        st.success(gpt_summary(df_filtered, tab))
 
 # ============ FOOTER ============
 st.markdown("---")
