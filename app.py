@@ -49,7 +49,8 @@ def load_data():
 df = load_data()
 
 # ============ Header ============
-st.markdown('<div class="animated-title">🎬 Netflix Visual Explorer - GPT Edition</div>', unsafe_allow_html=True)
+st.markdown('<div class="animated-title">🎬 Netflix Data Dashboard - GPT Edition</div>', unsafe_allow_html=True)
+<br>
 st.markdown("""
 Welcome to the **Netflix Data Dashboard** — an interactive and AI-powered dashboard built as part of the 📚 *Data Science Midterm Project* at **Reichman University**.
 
