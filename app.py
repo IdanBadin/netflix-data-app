@@ -43,6 +43,11 @@ st.markdown("""
     }
     .stApp {
         background: linear-gradient(to bottom, #0f0f0f, #1c1c1c);
+        animation: fadein 2s;
+    }
+    @keyframes fadein {
+        from { opacity: 0; }
+        to   { opacity: 1; }
     }
     .block-container {
         padding-top: 2rem;
@@ -63,15 +68,30 @@ st.title("🎬 Netflix Visual Explorer")
 col1, col2 = st.columns([2, 1])
 with col1:
     st.markdown("""
-    Dive into Netflix's streaming catalog with interactive visuals.  
-    Explore how content evolved over time, broken down by type, rating, country and duration.
-    """)
+    <div style='padding: 1rem; background-color: #1f1f1f; border-radius: 10px; box-shadow: 0 0 12px rgba(255, 0, 0, 0.3); animation: fadein 1.5s;'>
+        <h3 style='color: #FF4B4B;'>📊 Netflix Visual Explorer</h3>
+        <p style='font-size: 16px; line-height: 1.6;'>
+            This interactive dashboard was created as a midterm project for the <strong>Introduction to Data Science</strong> course at <strong>Reichman University</strong> 🎓.<br><br>
+            The app analyzes Netflix’s global streaming catalog using modern data science tools like <strong>Pandas</strong>, <strong>Seaborn</strong>, <strong>Plotly</strong>, and <strong>Streamlit</strong>.📈<br><br>
+            It offers insights into how Netflix has evolved over time by exploring:
+            <ul>
+                <li>🗂️ Content types (Movies vs. TV Shows)</li>
+                <li>📆 Titles added over the years</li>
+                <li>🏷️ Ratings & audience targeting</li>
+                <li>🌍 Geographic differences</li>
+                <li>📈 Time-based growth trends</li>
+            </ul>
+            Use the filters in the sidebar to explore the dataset interactively.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
 with col2:
     try:
         lottie_animation = load_lottiefile("lottie_movie.json")
-        st_lottie(lottie_animation, height=120, key="movie")
+        st_lottie(lottie_animation, height=180, key="movie")
     except:
-        pass
+        st.warning("⚠️ Animation failed to load.")
 
 # ============ SIDEBAR ==============
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg", use_column_width=True)
