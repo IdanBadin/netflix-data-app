@@ -9,7 +9,7 @@ import base64
 # ============ PAGE CONFIG ============
 st.set_page_config(page_title="Netflix AI Dashboard", page_icon="🎬", layout="wide")
 
-# ============ CUSTOM CSS =============
+# ============ CUSTOM CSS ============
 st.markdown("""
     <style>
     .animated-title {
@@ -26,14 +26,14 @@ st.markdown("""
     .stButton button:hover {
         background-color: #ff4b4b;
         color: white;
-        transition: background-color 0.3s ease, color 0.3s ease;
+        transition: 0.3s ease;
     }
-    .element-container .block-container > div {
-        animation: fadeInUp 0.5s ease;
-    }
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+    .st-emotion-cache-1avcm0n {
+        background-color: #e6ffed;
+        border-left: 5px solid #00c851;
+        padding: 0.8em;
+        margin-top: 1em;
+        border-radius: 4px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -48,7 +48,7 @@ def load_data():
     df = pd.read_csv(url)
     df['date_added'] = pd.to_datetime(df['date_added'], errors='coerce')
     df['year_added'] = df['date_added'].dt.year
-    df['duration_num'] = df['duration'].str.extract(r'(\d+)').astype(float)
+    df['duration_num'] = df['duration'].str.extract(r'(\\d+)').astype(float)
     return df
 
 df = load_data()
@@ -56,9 +56,7 @@ df = load_data()
 # ============ HEADER ============
 st.markdown('<div class="animated-title">🎬 Netflix Visual Explorer - GPT Edition</div>', unsafe_allow_html=True)
 st.markdown("""
-Welcome to the **Netflix Visual Explorer** — an interactive and AI-powered dashboard built as part of the 📚 *Data Science Midterm Project* at **Reichman University**.
-
-This app combines data analysis and storytelling to explore how **Netflix's catalog evolved** over time, using real-world data.
+Welcome to the **Netflix Visual Explorer** — an AI-powered dashboard built as part of the 📚 *Data Science Midterm Project* at **Reichman University**.
 """)
 
 # ============ SIDEBAR ============
@@ -76,9 +74,7 @@ st.sidebar.download_button("📥 Download CSV", csv, "netflix_filtered.csv", "te
 fact = random.choice([
     "Netflix started as a DVD rental company in 1997 💿",
     "'House of Cards' was its first original series 🃏",
-    "Over 100M households watched 'Squid Game' 🦑",
-    "Netflix operates in 190+ countries 🌎",
-    "The Netflix logo got its current look in 2014 🔴"
+    "Over 100M households watched 'Squid Game' 🦑"
 ])
 st.sidebar.markdown("### 💡 Did You Know?")
 st.sidebar.info(fact)
@@ -86,19 +82,16 @@ st.sidebar.info(fact)
 # ============ GPT SUMMARY FUNCTION ============
 def gpt_summary(df, tab_name):
     if openai.api_key is None:
-        return "🔒 GPT key not set in Streamlit secrets."
-    prompt = f"Netflix data from {year_range[0]} to {year_range[1]}, filtered for: {', '.join(types)}. "
+        return "🔒 GPT key not set."
+    prompt = f"Data from {year_range[0]}–{year_range[1]} on Netflix for {', '.join(types)}. "
     if tab_name == "Overview":
-        prompt += "Summarize the distribution of content types."
-    elif tab_name == "Titles Over Time":
-        prompt += "Describe how the number of titles added each year has changed."
+        prompt += "Summarize distribution of content types."
     elif tab_name == "Ratings":
-        prompt += "What can be inferred from the distribution of ratings by content type?"
+        prompt += "What does the rating distribution say about content targeting?"
     elif tab_name == "Durations":
         prompt += "Which countries have longer average movie durations?"
-    elif tab_name == "Trends":
-        prompt += "Describe growth trends in Netflix content over time."
-
+    elif tab_name == "Trends" or tab_name == "Titles Over Time":
+        prompt += "Describe growth in titles over time."
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -106,20 +99,22 @@ def gpt_summary(df, tab_name):
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        return f"⚠️ GPT error: {str(e)}"
+        return f"⚠️ GPT error: {e}"
 
 # ============ PDF EXPORT FUNCTION ============
-def export_pdf(content, filename="summary.pdf"):
+def export_pdf(content, filename):
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("Helvetica", 'B', 16)
+    pdf.cell(200, 10, txt="Netflix Insight Summary", ln=True, align='C')
+    pdf.set_font("Helvetica", '', 12)
+    pdf.ln(10)
     for line in content.split('\n'):
         pdf.multi_cell(0, 10, line)
     pdf.output(filename)
     with open(filename, "rb") as f:
         base64_pdf = base64.b64encode(f.read()).decode('utf-8')
-    href = f'<a href="data:application/pdf;base64,{base64_pdf}" download="{filename}">📄 Download Summary PDF</a>'
-    return href
+    return f'<a href="data:application/pdf;base64,{base64_pdf}" download="{filename}">📄 Download as PDF</a>'
 
 # ============ TABS ============
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -134,10 +129,15 @@ with tab1:
     st.subheader("📊 Content Type Overview")
     fig = px.histogram(df_filtered, x='type', color='type')
     st.plotly_chart(fig, use_container_width=True)
+    counts = df_filtered['type'].value_counts()
+    if not counts.empty:
+        pct = (counts / counts.sum() * 100).round(1).to_dict()
+        insight = f"In this selection, **{pct.get('Movie',0)}%** are Movies and **{pct.get('TV Show',0)}%** are TV Shows."
+        st.success(insight)
     if st.button("🤖 GPT Summary", key="gpt1"):
-        summary = gpt_summary(df_filtered, "Overview")
-        st.success(summary)
-        st.markdown(export_pdf(summary, "overview_summary.pdf"), unsafe_allow_html=True)
+        s = gpt_summary(df_filtered, "Overview")
+        st.success(s)
+        st.markdown(export_pdf(s, "overview.pdf"), unsafe_allow_html=True)
 
 with tab2:
     st.subheader("📆 Titles Added Over Time")
@@ -145,24 +145,30 @@ with tab2:
     df_year['year_added'] = df_year['year_added'].astype(int)
     fig = px.histogram(df_year, x='year_added', color_discrete_sequence=["#4a90e2"])
     st.plotly_chart(fig, use_container_width=True)
+    if not df_year.empty:
+        peak = df_year['year_added'].value_counts().idxmax()
+        st.success(f"Most titles were added in **{peak}**.")
     if st.button("🤖 GPT Summary", key="gpt2"):
-        summary = gpt_summary(df_filtered, "Titles Over Time")
-        st.success(summary)
-        st.markdown(export_pdf(summary, "titles_over_time_summary.pdf"), unsafe_allow_html=True)
+        s = gpt_summary(df_filtered, "Titles Over Time")
+        st.success(s)
+        st.markdown(export_pdf(s, "titles_over_time.pdf"), unsafe_allow_html=True)
 
 with tab3:
     st.subheader("🏷️ Ratings Distribution by Type")
     fig = px.histogram(df_filtered, x='rating', color='type', barmode='group')
     st.plotly_chart(fig, use_container_width=True)
+    if not df_filtered.empty:
+        top_rating = df_filtered['rating'].value_counts().idxmax()
+        st.success(f"The most frequent rating is **{top_rating}**.")
     if st.button("🤖 GPT Summary", key="gpt3"):
-        summary = gpt_summary(df_filtered, "Ratings")
-        st.success(summary)
-        st.markdown(export_pdf(summary, "ratings_summary.pdf"), unsafe_allow_html=True)
+        s = gpt_summary(df_filtered, "Ratings")
+        st.success(s)
+        st.markdown(export_pdf(s, "ratings.pdf"), unsafe_allow_html=True)
 
 with tab4:
     st.subheader("⏱️ Average Movie Duration by Country")
     df_movies = df_filtered[df_filtered['type'] == 'Movie'].copy()
-    df_movies['duration_min'] = df_movies['duration'].str.extract(r'(\d+)').astype(float)
+    df_movies['duration_min'] = df_movies['duration'].str.extract(r'(\\d+)').astype(float)
     top = df_movies['country'].value_counts().head(5).index
     df_avg = df_movies[df_movies['country'].isin(top)].groupby('country', as_index=False)['duration_min'].mean()
 
@@ -176,11 +182,10 @@ with tab4:
             st.warning("⚠️ Could not determine top country.")
     else:
         st.warning("No duration data available.")
-
     if st.button("🤖 GPT Summary", key="gpt4"):
-        summary = gpt_summary(df_filtered, "Durations")
-        st.success(summary)
-        st.markdown(export_pdf(summary, "durations_summary.pdf"), unsafe_allow_html=True)
+        s = gpt_summary(df_filtered, "Durations")
+        st.success(s)
+        st.markdown(export_pdf(s, "durations.pdf"), unsafe_allow_html=True)
 
 with tab5:
     st.subheader("📈 Content Growth Trends")
@@ -188,10 +193,10 @@ with tab5:
     fig = px.line(df_trend, x='year_added', y='count', color='type', markers=True)
     st.plotly_chart(fig, use_container_width=True)
     if st.button("🤖 GPT Summary", key="gpt5"):
-        summary = gpt_summary(df_filtered, "Trends")
-        st.success(summary)
-        st.markdown(export_pdf(summary, "trends_summary.pdf"), unsafe_allow_html=True)
+        s = gpt_summary(df_filtered, "Trends")
+        st.success(s)
+        st.markdown(export_pdf(s, "trends.pdf"), unsafe_allow_html=True)
 
 # ============ FOOTER ============
 st.markdown("---")
-st.markdown("✨ Built with ❤️ by **Idan Badin** | Netflix GPT Dashboard | Reichman University 2025")
+st.success("✨ Built with ❤️ by Idan Badin | Netflix GPT Dashboard | Reichman University 2025")
