@@ -94,7 +94,7 @@ with col2:
         st.warning("⚠️ Animation failed to load.")
 
 # ============ SIDEBAR ==============
-st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg", use_column_width=True)
+st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg", use_container_width=True)
 st.sidebar.markdown("## 🔍 Filter Content")
 
 selected_types = st.sidebar.multiselect("Select Content Type", df['type'].dropna().unique(), default=df['type'].dropna().unique())
