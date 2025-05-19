@@ -1,27 +1,22 @@
-# Ultra-Premium Netflix Streamlit App (Dark Mode + Smart Features)
-# Prepared for Idan Badin's Data Science Midterm Project
+
+# 🧠 Netflix Super App - Final Premium Version by Idan Badin
 
 import streamlit as st
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 import plotly.express as px
-from streamlit_lottie import st_lottie
-import json
+import pyttsx3
+import base64
 import random
+import json
 
 # ============ PAGE CONFIG ==============
-st.set_page_config(
-    page_title="🎬 Netflix Visual Explorer",
-    page_icon="🎬",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="Netflix AI Dashboard", page_icon="🎬", layout="wide")
 
-# ============ LOAD ANIMATION FUNCTION ==============
-def load_lottiefile(filepath: str):
-    with open(filepath, "r") as f:
-        return json.load(f)
+# ============ AUDIO NARRATION ============
+def speak(text):
+    engine = pyttsx3.init()
+    engine.say(text)
+    engine.runAndWait()
 
 # ============ LOAD DATA ==============
 @st.cache_data
@@ -35,191 +30,109 @@ def load_data():
 
 df = load_data()
 
-# ============ CUSTOM DARK THEME CSS + GLOW EFFECTS ==============
-st.markdown("""
-    <style>
-    html, body, [class*="css"]  {
-        background-color: #121212;
-        color: #FFFFFF;
-    }
-    .stApp {
-        background: linear-gradient(to bottom, #0f0f0f, #1c1c1c);
-        animation: fadein 2s;
-    }
-    @keyframes fadein {
-        from { opacity: 0; }
-        to   { opacity: 1; }
-    }
-    .block-container {
-        padding-top: 2rem;
-    }
-    .metric-box {
-        background: rgba(255, 255, 255, 0.05);
-        padding: 1rem;
-        border-radius: 12px;
-        box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
-        backdrop-filter: blur(10px);
-        text-align: center;
-        transition: 0.3s ease;
-    }
-    .metric-box:hover {
-        box-shadow: 0 0 25px rgba(255, 50, 50, 0.8);
-        transform: scale(1.03);
-    }
-    </style>
-""", unsafe_allow_html=True)
+# ============ FILTERS + MEMORY ============
+if "selected_tab" not in st.session_state:
+    st.session_state.selected_tab = "Overview"
 
-# ============ HEADER ==============
-st.title("🎬 Netflix Visual Explorer")
+tabs = ["Overview", "Titles Over Time", "Ratings", "Durations", "Trends"]
 
-col1, col2 = st.columns([2, 1])
-with col1:
-    st.markdown("""
-    <div style='padding: 1rem; background-color: #1f1f1f; border-radius: 10px; box-shadow: 0 0 12px rgba(255, 0, 0, 0.3); animation: fadein 1.5s;'>
-        <h3 style='color: #FF4B4B;'>📊 Netflix Visual Explorer</h3>
-        <p style='font-size: 16px; line-height: 1.6;'>
-            This interactive dashboard was created as a midterm project for the <strong>Introduction to Data Science</strong> course at <strong>Reichman University</strong> 🎓.<br><br>
-            The app analyzes Netflix’s global streaming catalog using modern data science tools like <strong>Pandas</strong>, <strong>Seaborn</strong>, <strong>Plotly</strong>, and <strong>Streamlit</strong>.📈<br><br>
-            It offers insights into how Netflix has evolved over time by exploring:
-            <ul>
-                <li>🗂️ Content types (Movies vs. TV Shows)</li>
-                <li>📆 Titles added over the years</li>
-                <li>🏷️ Ratings & audience targeting</li>
-                <li>🌍 Geographic differences</li>
-                <li>📈 Time-based growth trends</li>
-            </ul>
-            Use the filters in the sidebar to explore the dataset interactively.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+selected_tab = st.sidebar.radio("📍 Navigate", tabs, index=tabs.index(st.session_state.selected_tab))
+st.session_state.selected_tab = selected_tab
 
-with col2:
-    try:
-        lottie_animation = load_lottiefile("lottie_movie.json")
-        st_lottie(lottie_animation, height=180, key="movie")
-    except:
-        st.warning("⚠️ Animation failed to load.")
+st.sidebar.markdown("### 🎛️ Filter Dataset")
+types = st.sidebar.multiselect("Select Type", df['type'].dropna().unique(), default=df['type'].dropna().unique())
+year_range = st.sidebar.slider("Select Year Range", int(df['year_added'].min()), int(df['year_added'].max()), (2015, 2020))
 
-# ============ SIDEBAR ==============
-st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg", use_container_width=True)
-st.sidebar.markdown("## 🔍 Filter Content")
+df_filtered = df[(df['type'].isin(types)) & (df['year_added'].between(*year_range))]
 
-selected_types = st.sidebar.multiselect("Select Content Type", df['type'].dropna().unique(), default=df['type'].dropna().unique())
-year_range = st.sidebar.slider("Year Added", int(df['year_added'].min()), int(df['year_added'].max()), (2015, 2020))
+# ============ CSV DOWNLOAD ============
+def get_table_download_link(df):
+    csv = df.to_csv(index=False)
+    b64 = base64.b64encode(csv.encode()).decode()
+    href = f'<a href="data:file/csv;base64,{b64}" download="netflix_filtered.csv">📥 Download CSV</a>'
+    return href
 
-# ============ FILTER DATA ==============
-df_filtered = df[(df['type'].isin(selected_types)) & (df['year_added'].between(*year_range))]
+# ============ EASTER EGG ============
+if df_filtered.shape[0] == 1984:
+    st.balloons()
+    st.success("🎉 You unlocked a secret Netflix number... 1984 titles exactly!")
 
-# ============ SMART METRICS ==============
-st.markdown("### 📊 At a Glance")
-col1, col2, col3 = st.columns(3)
-col1.markdown(f"""<div class='metric-box'>🎞️ <br><strong>Total Titles</strong><br>{df_filtered.shape[0]}</div>""", unsafe_allow_html=True)
-col2.markdown(f"""<div class='metric-box'>🎬 <br><strong>Movies</strong><br>{(df_filtered['type'] == 'Movie').sum()}</div>""", unsafe_allow_html=True)
-col3.markdown(f"""<div class='metric-box'>📺 <br><strong>TV Shows</strong><br>{(df_filtered['type'] == 'TV Show').sum()}</div>""", unsafe_allow_html=True)
+# ============ APP HEADER ============
+st.markdown(f"<h2 style='color:#E50914;'>🎬 Netflix Visual Explorer - Premium AI Edition</h2>", unsafe_allow_html=True)
+st.markdown(f"Filtered dataset: **{df_filtered.shape[0]} titles**, Years: {year_range[0]} to {year_range[1]}")
+st.markdown(get_table_download_link(df_filtered), unsafe_allow_html=True)
 
-# ============ RANDOM FACT BOX ==============
-netflix_facts = [
-    "Netflix was founded in 1997 as a DVD rental service 💿",
-    "The first Netflix original series was 'House of Cards' 🃏",
-    "Netflix streams in over 190 countries 🌍",
-    "More than 100 million households watched 'Squid Game' 🦑",
-    "Netflix’s logo was redesigned in 2014 🔴"
-]
-st.sidebar.markdown(f"#### 💡 Did You Know?")
-st.sidebar.info(random.choice(netflix_facts))
+# ============ LIVE AI SUMMARY (Placeholder) ============
+if st.button("🤖 Summarize this View"):
+    summary = f"This filtered view contains {df_filtered.shape[0]} titles spanning {year_range[1] - year_range[0] + 1} years, mostly of type {df_filtered['type'].mode()[0]}."
+    st.info("💬 GPT says: " + summary)
+    if st.button("🔊 Narrate Summary"):
+        speak(summary)
 
-# ============ TABS ==============
-tabs = st.tabs([
-    "📊 Type Distribution", 
-    "📆 Titles Over Time",
-    "🏷️ Ratings", 
-    "🌍 Duration by Country",
-    "📈 Trends Over Time"
-])
-
-with tabs[0]:
-    st.subheader("📊 Content Type Distribution")
+# ============ EACH TAB CONTENT ============
+if selected_tab == "Overview":
+    st.subheader("📊 Content Type Overview")
     fig = px.histogram(df_filtered, x='type', color='type', title="Distribution of Movies vs TV Shows",
                        color_discrete_sequence=px.colors.qualitative.Set2)
-    fig.update_layout(template='plotly_dark')
     st.plotly_chart(fig, use_container_width=True)
+    insight = f"Most content is of type {df_filtered['type'].mode()[0]}."
+    st.success("🧠 Insight: " + insight)
+    if st.button("🎧 Narrate Insight - Overview"):
+        speak(insight)
 
-    movie_count = (df_filtered['type'] == 'Movie').sum()
-    show_count = (df_filtered['type'] == 'TV Show').sum()
-    st.markdown(f"""
-    **Insight:** In this selection, there are **{movie_count} Movies** and **{show_count} TV Shows**.
-    """)
-
-with tabs[1]:
+elif selected_tab == "Titles Over Time":
     st.subheader("📆 Titles Added Over Time")
-    df_filtered_clean = df_filtered[df_filtered['year_added'].notnull()].copy()
-    df_filtered_clean['year_added'] = df_filtered_clean['year_added'].astype(int)
-    fig = px.histogram(df_filtered_clean, x='year_added', color_discrete_sequence=['#4a90e2'])
-    fig.update_layout(template='plotly_dark', title="Titles Added Each Year")
+    df_clean = df_filtered[df_filtered['year_added'].notnull()].copy()
+    df_clean['year_added'] = df_clean['year_added'].astype(int)
+    fig = px.histogram(df_clean, x='year_added', nbins=20, color_discrete_sequence=['#4a90e2'])
     st.plotly_chart(fig, use_container_width=True)
+    if not df_clean.empty:
+        year = int(df_clean['year_added'].mode()[0])
+        insight = f"Most titles were added in {year}."
+        st.info("🧠 Insight: " + insight)
+        if st.button("🎧 Narrate Insight - Titles Over Time"):
+            speak(insight)
 
-    year_counts = df_filtered_clean['year_added'].value_counts().sort_index()
-    if not year_counts.empty:
-        most_year = int(year_counts.idxmax())
-        most_count = int(year_counts.max())
-        st.markdown(f"""
-        **Insight:** The year with the most content added is **{most_year}**, with **{most_count} titles**.
-        """)
-
-with tabs[2]:
-    st.subheader("🏷️ Content Ratings")
+elif selected_tab == "Ratings":
+    st.subheader("🏷️ Rating Distribution")
     fig = px.histogram(df_filtered, x='rating', color='type', barmode='group',
-                       title="Distribution of Ratings",
+                       title="Content Ratings by Type",
                        color_discrete_sequence=px.colors.qualitative.Pastel)
-    fig.update_layout(template='plotly_dark')
     st.plotly_chart(fig, use_container_width=True)
+    top_rating = df_filtered['rating'].value_counts().idxmax() if not df_filtered.empty else "N/A"
+    insight = f"The most frequent rating is {top_rating}."
+    st.warning("🧠 Insight: " + insight)
+    if st.button("🎧 Narrate Insight - Ratings"):
+        speak(insight)
 
-    if not df_filtered.empty:
-        top_rating = df_filtered['rating'].value_counts().idxmax()
-        st.markdown(f"""
-        **Insight:** The most common rating in this selection is **{top_rating}**.
-        """)
-
-with tabs[3]:
-    st.subheader("🌍 Average Duration by Country (Top 5)")
+elif selected_tab == "Durations":
+    st.subheader("⏱️ Average Movie Duration by Country")
     df_movies = df_filtered[df_filtered['type'] == 'Movie'].copy()
     df_movies['duration_min'] = df_movies['duration'].str.extract(r'(\d+)').astype(float)
     top_countries = df_movies['country'].value_counts().head(5).index
     df_top = df_movies[df_movies['country'].isin(top_countries)]
     df_avg = df_top.groupby('country')['duration_min'].mean().reset_index()
-    fig = px.bar(df_avg, x='country', y='duration_min', color='country',
-                 title="Average Movie Duration by Country",
-                 color_discrete_sequence=px.colors.sequential.Reds)
-    fig.update_layout(template='plotly_dark')
+    fig = px.bar(df_avg, x='country', y='duration_min', color='country')
     st.plotly_chart(fig, use_container_width=True)
-
     if not df_top.empty:
-        avg_all = df_top['duration_min'].mean()
-        st.markdown(f"""
-        **Insight:** The average movie duration in top countries is **{round(avg_all)} minutes**.
-        """)
-    else:
-        st.markdown("**Insight:** No movie data available for the selected filters.")
+        max_dur = df_avg.loc[df_avg['duration_min'].idxmax()]
+        insight = f"{max_dur['country']} has the longest average movie duration: {round(max_dur['duration_min'])} minutes."
+        st.success("🧠 Insight: " + insight)
+        if st.button("🎧 Narrate Insight - Duration"):
+            speak(insight)
 
-with tabs[4]:
-    st.subheader("📈 Movies vs TV Shows Over Time")
+elif selected_tab == "Trends":
+    st.subheader("📈 Content Growth Over Time")
     df_trend = df_filtered.groupby(['year_added', 'type']).size().reset_index(name='count')
     fig = px.line(df_trend, x='year_added', y='count', color='type', markers=True,
-                  title="Content Growth Over Time",
-                  color_discrete_sequence=px.colors.qualitative.Set1)
-    fig.update_layout(template='plotly_dark')
+                  title="Growth of Content Types Over Time",
+                  color_discrete_sequence=px.colors.qualitative.Bold)
     st.plotly_chart(fig, use_container_width=True)
-
-    if not df_trend.empty:
-        years = df_trend['year_added'].dropna().astype(int)
-        min_year = int(years.min())
-        max_year = int(years.max())
-        types = ', '.join(df_trend['type'].unique())
-        st.markdown(f"""
-        **Insight:** This trend shows how Netflix's content evolved from **{min_year}** to **{max_year}**,  
-        with consistent growth in {types}.
-        """)
+    insight = f"From {year_range[0]} to {year_range[1]}, Netflix saw consistent growth across content types."
+    st.info("🧠 Insight: " + insight)
+    if st.button("🎧 Narrate Insight - Trends"):
+        speak(insight)
 
 # ============ FOOTER ==============
 st.markdown("---")
-st.markdown("✨ Built with ❤️ by **Idan Badin** | Netflix Midterm Project | Reichman University 2025")
+st.markdown("✨ Built with ❤️ by **Idan Badin** | AI-Powered Netflix Dashboard | Reichman University 2025")
