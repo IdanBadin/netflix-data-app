@@ -8,6 +8,7 @@ import base64
 
 st.set_page_config(page_title="Netflix AI Dashboard", page_icon="🎬", layout="wide")
 
+# ============ Animated Title Style ============
 st.markdown("""
     <style>
     .animated-title {
@@ -35,7 +36,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ============ Load and prepare data ============
+# ============ Load Data ============
 @st.cache_data
 def load_data():
     url = "https://drive.google.com/uc?id=1-C3O1uZDLsnYDVTppn0h3SjGOA4LifYE"
@@ -50,23 +51,23 @@ df = load_data()
 
 # ============ Header ============
 st.markdown('<div class="animated-title">🎬 Netflix Visual Explorer - GPT Edition</div>', unsafe_allow_html=True)
-st.markdown("Welcome to the **Netflix Visual Explorer** — created for the 📚 *Data Science Midterm Project* at **Reichman University**.")
+st.markdown("Welcome to the **Netflix Visual Explorer** — built for the 📚 *Data Science Midterm Project* at **Reichman University**.")
 
 # ============ Sidebar ============
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg", use_container_width=True)
 types = st.sidebar.multiselect("Select Type", df['type'].dropna().unique(), default=df['type'].dropna().unique())
 year_range = st.sidebar.slider("Select Year Range", int(df['year_added'].min()), int(df['year_added'].max()), (2015, 2020))
 df_filtered = df[(df['type'].isin(types)) & (df['year_added'].between(*year_range))]
+
 st.sidebar.download_button("📥 Download CSV", df_filtered.to_csv(index=False).encode(), "netflix_filtered.csv", "text/csv")
-fact = random.choice([
+st.sidebar.markdown("### 💡 Fun Fact")
+st.sidebar.info(random.choice([
     "Netflix started as a DVD rental company in 1997 💿",
     "'House of Cards' was its first original series 🃏",
     "Over 100M households watched 'Squid Game' 🦑"
-])
-st.sidebar.markdown("### 💡 Fun Fact")
-st.sidebar.info(fact)
+]))
 
-# ============ GPT summary & PDF export ============
+# ============ GPT Summary & PDF ============
 openai.api_key = st.secrets.get("OPENAI_API_KEY", None)
 
 def gpt_summary(df, tab):
@@ -101,18 +102,20 @@ def export_pdf(content, filename):
 # ============ Tabs ============
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Overview", "📆 Titles Over Time", "🏷️ Ratings", "⏱️ Durations", "📈 Trends"])
 
+# === Overview ===
 with tab1:
     st.subheader("📊 Content Type Overview")
     fig = px.histogram(df_filtered, x='type', color='type')
     st.plotly_chart(fig, use_container_width=True)
     counts = df_filtered['type'].value_counts(normalize=True).round(2) * 100
     if not counts.empty:
-        st.success(f"In this selection: {counts.to_dict()}")
+        st.success(f"Selection: {counts.to_dict()}")
     if st.button("GPT Summary", key="gpt1"):
         s = gpt_summary(df_filtered, "Overview")
         st.success(s)
         st.markdown(export_pdf(s, "overview.pdf"), unsafe_allow_html=True)
 
+# === Titles Over Time ===
 with tab2:
     st.subheader("📆 Titles Over Time")
     df_yr = df_filtered[df_filtered['year_added'].notnull()].copy()
@@ -121,46 +124,49 @@ with tab2:
     st.plotly_chart(fig, use_container_width=True)
     if not df_yr.empty:
         peak = df_yr['year_added'].value_counts().idxmax()
-        st.success(f"Most titles were added in **{peak}**.")
+        st.success(f"Most titles added in **{peak}**.")
     if st.button("GPT Summary", key="gpt2"):
         s = gpt_summary(df_filtered, "Titles Over Time")
         st.success(s)
         st.markdown(export_pdf(s, "titles.pdf"), unsafe_allow_html=True)
 
+# === Ratings ===
 with tab3:
     st.subheader("🏷️ Ratings by Type")
     fig = px.histogram(df_filtered, x='rating', color='type', barmode='group')
     st.plotly_chart(fig, use_container_width=True)
     if not df_filtered.empty:
         top_rating = df_filtered['rating'].value_counts().idxmax()
-        st.success(f"The most frequent rating is **{top_rating}**.")
+        st.success(f"Top rating: **{top_rating}**.")
     if st.button("GPT Summary", key="gpt3"):
         s = gpt_summary(df_filtered, "Ratings")
         st.success(s)
         st.markdown(export_pdf(s, "ratings.pdf"), unsafe_allow_html=True)
 
+# === Durations ===
 with tab4:
     st.subheader("⏱️ Average Movie Duration by Country")
     df_movies = df_filtered[df_filtered['type'] == 'Movie'].copy()
     df_movies = df_movies[df_movies['duration_num'].notna() & df_movies['country'].notna()]
-    if df_movies.empty:
-        st.warning("⚠️ No valid movie entries with both duration and country found for current filter.")
+
+    if len(df_movies) < 5:
+        st.warning("⚠️ Not enough movie data for duration analysis. Try adjusting your filters.")
     else:
         top_countries = df_movies['country'].value_counts().head(5).index
         df_top = df_movies[df_movies['country'].isin(top_countries)]
         df_avg = df_top.groupby('country')['duration_num'].mean().reset_index()
-        if df_avg.empty:
-            st.warning("⚠️ Not enough data to plot durations.")
-        else:
-            fig = px.bar(df_avg, x='country', y='duration_num', color='country')
-            st.plotly_chart(fig, use_container_width=True)
-            max_country = df_avg.loc[df_avg['duration_num'].idxmax()]
-            st.success(f"🏆 Longest avg movie: {max_country['country']} — {round(max_country['duration_num'])} min")
-            if st.button("GPT Summary", key="gpt4"):
-                s = gpt_summary(df_filtered, "Durations")
-                st.success(s)
-                st.markdown(export_pdf(s, "durations.pdf"), unsafe_allow_html=True)
 
+        fig = px.bar(df_avg, x='country', y='duration_num', color='country')
+        st.plotly_chart(fig, use_container_width=True)
+        max_country = df_avg.loc[df_avg['duration_num'].idxmax()]
+        st.success(f"🏆 {max_country['country']} has longest avg movie: {round(max_country['duration_num'])} min")
+
+        if st.button("GPT Summary", key="gpt4"):
+            s = gpt_summary(df_filtered, "Durations")
+            st.success(s)
+            st.markdown(export_pdf(s, "durations.pdf"), unsafe_allow_html=True)
+
+# === Trends ===
 with tab5:
     st.subheader("📈 Content Growth Trends")
     df_trend = df_filtered.groupby(['year_added', 'type']).size().reset_index(name='count')
@@ -171,6 +177,6 @@ with tab5:
         st.success(s)
         st.markdown(export_pdf(s, "trends.pdf"), unsafe_allow_html=True)
 
-# ============ Footer ============
+# Footer
 st.markdown("---")
 st.success("✨ Built with ❤️ by Idan Badin | Netflix GPT Dashboard | Reichman University 2025")
