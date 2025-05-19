@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 from streamlit_lottie import st_lottie
 import json
+import random
 
 # ============ PAGE CONFIG ==============
 st.set_page_config(
@@ -34,7 +35,7 @@ def load_data():
 
 df = load_data()
 
-# ============ CUSTOM DARK THEME CSS ==============
+# ============ CUSTOM DARK THEME CSS + GLOW EFFECTS ==============
 st.markdown("""
     <style>
     html, body, [class*="css"]  {
@@ -53,11 +54,17 @@ st.markdown("""
         padding-top: 2rem;
     }
     .metric-box {
-        background-color: #1f1f1f;
+        background: rgba(255, 255, 255, 0.05);
         padding: 1rem;
         border-radius: 12px;
-        box-shadow: 0 0 10px rgba(255, 0, 0, 0.2);
+        box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+        backdrop-filter: blur(10px);
         text-align: center;
+        transition: 0.3s ease;
+    }
+    .metric-box:hover {
+        box-shadow: 0 0 25px rgba(255, 50, 50, 0.8);
+        transform: scale(1.03);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -109,6 +116,17 @@ col1, col2, col3 = st.columns(3)
 col1.markdown(f"""<div class='metric-box'>🎞️ <br><strong>Total Titles</strong><br>{df_filtered.shape[0]}</div>""", unsafe_allow_html=True)
 col2.markdown(f"""<div class='metric-box'>🎬 <br><strong>Movies</strong><br>{(df_filtered['type'] == 'Movie').sum()}</div>""", unsafe_allow_html=True)
 col3.markdown(f"""<div class='metric-box'>📺 <br><strong>TV Shows</strong><br>{(df_filtered['type'] == 'TV Show').sum()}</div>""", unsafe_allow_html=True)
+
+# ============ RANDOM FACT BOX ==============
+netflix_facts = [
+    "Netflix was founded in 1997 as a DVD rental service 💿",
+    "The first Netflix original series was 'House of Cards' 🃏",
+    "Netflix streams in over 190 countries 🌍",
+    "More than 100 million households watched 'Squid Game' 🦑",
+    "Netflix’s logo was redesigned in 2014 🔴"
+]
+st.sidebar.markdown(f"#### 💡 Did You Know?")
+st.sidebar.info(random.choice(netflix_facts))
 
 # ============ TABS ==============
 tabs = st.tabs([
@@ -175,10 +193,13 @@ with tabs[3]:
     fig.update_layout(template='plotly_dark')
     st.plotly_chart(fig, use_container_width=True)
 
-    avg_all = df_top['duration_min'].mean()
-    st.markdown(f"""
-    **Insight:** The average movie duration in top countries is **{round(avg_all)} minutes**.
-    """)
+    if not df_top.empty:
+        avg_all = df_top['duration_min'].mean()
+        st.markdown(f"""
+        **Insight:** The average movie duration in top countries is **{round(avg_all)} minutes**.
+        """)
+    else:
+        st.markdown("**Insight:** No movie data available for the selected filters.")
 
 with tabs[4]:
     st.subheader("📈 Movies vs TV Shows Over Time")
